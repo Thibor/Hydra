@@ -31,6 +31,7 @@ void PrintBoard() {
 
 static void UciGo(char* command) {
 	ResetInfo();
+	int movestogo = 32;
 	char* token;
 	if (strstr(command, "infinite"))
 		info.flags |= FINFINITE;
@@ -67,7 +68,7 @@ static void UciGo(char* command) {
 	if (token > 0)
 	{
 		info.flags |= FMOVESTOGO;
-		converted = sscanf(token, "%*s %d", &info.movestogo);
+		converted = sscanf(token, "%*s %d", &movestogo);
 	}
 	token = strstr(command, "depth");
 	if (token > 0)
@@ -92,7 +93,7 @@ static void UciGo(char* command) {
 	int time = board.stm ? info.time[BLACK] : info.time[WHITE];
 	int inc = board.stm ? info.inc[BLACK] : info.inc[WHITE];
 	if (time)
-		info.timeLimit = min(time / info.movestogo + inc, time / 2);
+		info.timeLimit = min(time / movestogo + inc, time / 2);
 	search_run();
 }
 
@@ -182,8 +183,9 @@ void UciCommand(char* command)
 }
 
 void UciLoop() {
-	while (true)
-	{
+	//UciCommand("position startpos moves e2e4 d7d6 d2d4 g8f6 b1c3 g7g6 f2f4 f8g7 g1f3 c7c5 f1b5 c8d7 e4e5 f6g4");
+	//UciCommand("go wtime 32100 btime 32100 winc 300 binc 300");
+	while (true){
 		string line;
 		getline(cin, line);
 		UciCommand((char*)line.c_str());

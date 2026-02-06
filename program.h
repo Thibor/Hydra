@@ -145,7 +145,6 @@ struct s_SearchInfo {
 	int time[2];
 	int inc[2];
 	U64 nodes;
-	int movestogo;
 	int depthLimit;
 	U64 nodesLimit;
 	int timeLimit;
