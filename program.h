@@ -292,7 +292,6 @@ void UciBench(char* command);
 void GetPv(char* pv);
 
 unsigned int GetTimeMs();
-void time_calc_movetime();
 bool time_stop_root();
 bool isRepetition();
 void PrintBenchHeader();

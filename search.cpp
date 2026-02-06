@@ -21,75 +21,6 @@ unsigned int GetTimeMs() {
 	return (unsigned int)((((U64)ft.dwHighDateTime << 32) | ft.dwLowDateTime) / 10000);
 }
 
-void time_calc_movetime() {
-
-	/* no movetime to be calculated in these search types */
-
-	if (info.flags & (FINFINITE | FDEPTH | FNODES))
-		return;
-
-	/* if the movetime is given */
-
-	if (info.flags & FMOVETIME) {
-		if (info.timeLimit > TIMEBUFFER)
-			info.timeLimit = info.timeLimit - TIMEBUFFER;
-		else
-			info.timeLimit = 0;
-		return;
-	}
-
-	/* in any other case we are given an ordinary timecontrol
-	   (time + opt. movestogo + opt. incremental)
-
-		we take the total time left (chronos.time[sd.myside]), divide it
-		by the number of moves that are still to play (chronos.movestogo)
-		and we have the allowed time per move.
-		If we are given an incremental time control, we consider this
-		here as well.
-
-		In case we are not told how many moves we are supposed to play
-		with the time left, we assume a constant. This results in a
-		slower play in the beginning and more rapid towards the end.
-
-		as a little buffer we always assume that there are more moves
-		to be played than we actually have to. This should avoid loosing on time.
-	*/
-
-	info.timeLimit = 0;
-	int movestogo = MOVESTOGO;
-	if (info.flags & FMOVESTOGO)
-		movestogo = info.movestogo + 2;
-	if (info.time[sd.myside] < 0)
-		info.time[sd.myside] = 0;
-	if (info.inc[sd.myside] < 0)
-		info.inc[sd.myside] = 0;
-	if (info.flags & FTIME)
-		info.timeLimit += info.time[sd.myside] / movestogo;
-	if (info.flags & FINC)
-		info.timeLimit += info.inc[sd.myside];
-	if (info.timeLimit > TIMEBUFFER)
-		info.timeLimit -= TIMEBUFFER;
-	else
-		info.timeLimit = 0;
-}
-
-bool time_stop_root() {
-	std::string InputAvailable;
-	if (GetInput(InputAvailable))
-		UciCommand((char*)InputAvailable.c_str());
-	if (info.stop)
-		return true;
-	if (info.flags & FINFINITE)
-		return false;
-	if (info.flags & FDEPTH)
-		return (info.depthLimit > info.depthLimit);
-	if (info.flags & FNODES)
-		return (info.nodes > info.nodesLimit);
-	if (info.flags & FMOVETIME)
-		return ((GetTimeMs() - info.timeStart) > info.timeLimit);
-	return GetTimeMs() - info.timeStart > info.timeLimit / 2;
-}
-
 bool isAttacked(char byColor, SQ sq) {
 
 	/* pawns */
@@ -320,7 +251,6 @@ bool badCapture(s_Move move) {
 
 void search_run() {
 	sd.myside = board.stm;
-	time_calc_movetime();
 	ageHistoryTable();
 	SearchIterate();
 }
@@ -330,11 +260,13 @@ void SearchIterate() {
 	int move_count = move_countLegal();
 	int val = SearchRoot(1, -MATE, MATE);
 	for (int depth = 2; depth <= info.depthLimit; depth++) {
-		if (time_stop_root())
-			break;
-		if (move_count == 1 && depth == 5)
-			break;
 		val = SearchWiden(depth, val);
+		if(info.stop)
+			break;
+		if (move_count == 1)
+			break;
+		if(info.timeLimit && GetTimeMs() - info.timeStart > info.timeLimit / 2)
+			break;
 	}
 	PrintBest();
 }

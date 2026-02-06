@@ -89,6 +89,10 @@ static void UciGo(char* command) {
 	}
 	if (info.flags == 0)
 		info.flags |= FINFINITE;
+	int time = board.stm ? info.time[BLACK] : info.time[WHITE];
+	int inc = board.stm ? info.inc[BLACK] : info.inc[WHITE];
+	if (time)
+		info.timeLimit = min(time / info.movestogo + inc, time / 2);
 	search_run();
 }
 
