@@ -292,7 +292,6 @@ void UciBench(char* command);
 void GetPv(char* pv);
 
 unsigned int GetTimeMs();
-bool time_stop_root();
 bool isRepetition();
 void PrintBenchHeader();
 void PrintPerformanceHeader();
@@ -317,9 +316,6 @@ void blockedPieces(int side);
 
 //uci
 void UciLoop();
-//input
-bool GetInput(std::string& s);
-int InputInit();
 //movegen
 void movegen_push(char from, char to, U8 piece_from, U8 piece_cap, char flags);
 //void movegen_push_qs(char from, char to, U8 piece_from, U8 piece_cap, char flags);
@@ -328,7 +324,6 @@ void movegen_pawn_capt(SQ sq);
 //search
 void SearchIterate();
 int SearchWiden(int depthLimit, int val);
-void ResetDriver();
 void ResetInfo();
 int SearchRoot(U8 depthLimit, int alpha, int beta);
 int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is_pv);

@@ -230,7 +230,6 @@ void PrintPerformanceHeader()
 int main()
 {
 	PrintWelcome();
-	InputInit();
 	setDefaultEval();
 	tt_init();
 	tt_setsize(0x4000000);     //64m

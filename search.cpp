@@ -811,15 +811,42 @@ int Contempt() {
 		return value;
 }
 
+static bool InputAvailable() {
+	static HANDLE hstdin = 0;
+	static bool pipe = false;
+	unsigned long dw = 0;
+	if (!hstdin) {
+		hstdin = GetStdHandle(STD_INPUT_HANDLE);
+		pipe = !GetConsoleMode(hstdin, &dw);
+		if (!pipe)
+		{
+			SetConsoleMode(hstdin, dw & ~(ENABLE_MOUSE_INPUT | ENABLE_WINDOW_INPUT));
+			FlushConsoleInputBuffer(hstdin);
+		}
+		else
+		{
+			setvbuf(stdin, NULL, _IONBF, 0);
+			setvbuf(stdout, NULL, _IONBF, 0);
+		}
+	}
+	if (pipe)
+		PeekNamedPipe(hstdin, 0, 0, 0, &dw, 0);
+	else
+		GetNumberOfConsoleInputEvents(hstdin, &dw);
+	return dw > 1;
+}
+
 bool CheckUp() {
 	if (!(++info.nodes & 0xffff)) {
 		if (info.timeLimit && GetTimeMs() - info.timeStart > info.timeLimit)
 			info.stop = true;
 		if (info.nodesLimit && info.nodes > info.nodesLimit)
 			info.stop = true;
-		string InputAvailable;
-		if (GetInput(InputAvailable))
-			UciCommand((char*)InputAvailable.c_str());
+		if (InputAvailable()) {
+			string line;
+			getline(cin, line);
+			UciCommand((char*)line.c_str());
+		}
 	}
 	return info.stop;
 }
@@ -827,10 +854,10 @@ bool CheckUp() {
 void PrintBest() {
 	if (info.ponder || !info.post)
 		return;
-	char make[6] = {};
+	char make[6]{};
 	algebraic_writemove(move_to_make, make);
 	if (options.ponder && (move_to_ponder.from != move_to_ponder.to)) {
-		char ponder[6] = {};
+		char ponder[6]{};
 		algebraic_writemove(move_to_ponder, ponder);
 		printf("bestmove %s ponder %s\n", make, ponder);
 	}

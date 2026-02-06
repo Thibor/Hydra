@@ -21,9 +21,6 @@
     <ClCompile Include="eval.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="input.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="movegen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
