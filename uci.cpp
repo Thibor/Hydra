@@ -27,6 +27,7 @@ void PrintBoard() {
 
 	cout << s << endl;
 	cout << t << endl;
+	cout << "side to move: " << (board.stm == WHITE ? "white" : "black") << endl;
 }
 
 static void UciGo(char* command) {
@@ -80,7 +81,7 @@ static void UciGo(char* command) {
 	if (token > 0)
 	{
 		info.flags |= FNODES;
-		converted = sscanf(token, "%*s %d", &info.nodesLimit);
+		converted = sscanf(token, "%*s %ull", &info.nodesLimit);
 	}
 	token = strstr(command, "movetime");
 	if (token > 0)
@@ -183,8 +184,6 @@ void UciCommand(char* command)
 }
 
 void UciLoop() {
-	//UciCommand("position startpos moves e2e4 d7d6 d2d4 g8f6 b1c3 g7g6 f2f4 f8g7 g1f3 c7c5 f1b5 c8d7 e4e5 f6g4");
-	//UciCommand("go wtime 32100 btime 32100 winc 300 binc 300");
 	while (true){
 		string line;
 		getline(cin, line);

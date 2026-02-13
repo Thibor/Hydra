@@ -275,7 +275,7 @@ int board_loadFromFen(char* fen) {
 	f++;
 
 	if (f[0] != '-') {
-		board.ep = convert_a_0x88(f);
+		board.ep = StrToSquare(f);
 		board.hash ^= zobrist.ep[board.ep];
 	}
 

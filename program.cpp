@@ -62,11 +62,11 @@ void UciBench() {
 	PrintSummary(elapsed, info.nodes);
 }
 
-s_Move strToMove(char* a)
+s_Move StrToMove(char* a)
 {
 	s_Move m = {};
-	m.from = convert_a_0x88(a);
-	m.to = convert_a_0x88(a + 2);
+	m.from = StrToSquare(a);
+	m.to = StrToSquare(a + 2);
 
 	m.piece_from = board.pieces[m.from];
 	m.piece_to = board.pieces[m.from];
@@ -138,7 +138,7 @@ bool algebraic_moves(char* a)
 			a++;
 			continue;
 		}
-		m = strToMove(a);
+		m = StrToMove(a);
 		found_match = move_isLegal(m);
 		if (found_match)
 		{
@@ -159,11 +159,11 @@ bool algebraic_moves(char* a)
 }
 
 
-char* algebraic_writemove(s_Move m, char* a)
+char* MoveToStr(s_Move m, char* a)
 {
 	char parray[5] = { 0,'q','r','b','n' };
-	convert_0x88_a(m.from, a);
-	convert_0x88_a(m.to, a + 2);
+	SquareToStr(m.from, a);
+	SquareToStr(m.to, a + 2);
 	a += 4;
 	if (m.piece_to != m.piece_from) {
 		a[0] = parray[m.piece_to];
@@ -173,14 +173,14 @@ char* algebraic_writemove(s_Move m, char* a)
 	return a;
 }
 
-void convert_0x88_a(SQ sq, char* a)
+void SquareToStr(SQ sq, char* a)
 {
 	a[0] = COL(sq) + 'a';
 	a[1] = ROW(sq) + '1';
 	a[2] = 0;
 }
 
-SQ convert_a_0x88(char* a)
+SQ StrToSquare(char* a)
 {
 	return a[0] - 'a' | ((a[1] - '1') << 4);
 }

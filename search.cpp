@@ -128,7 +128,7 @@ void GetPv(char* pv) {
 				if (depth == 2)
 					move_to_ponder = moves[i];
 				move_make(moves[i]);
-				pv = algebraic_writemove(moves[i], pv);
+				pv = MoveToStr(moves[i], pv);
 				pv[0] = ' ';
 				pv++;
 				break;
@@ -139,7 +139,7 @@ void GetPv(char* pv) {
 	board = rootb;
 }
 
-int Quiesce(int alpha, int beta)
+int SearchQuiesce(int alpha, int beta)
 {
 	if (CheckUp())
 		return 0;
@@ -197,7 +197,7 @@ int Quiesce(int alpha, int beta)
 		**********************************************************************/
 
 		move_make(movelist[i]);
-		val = -Quiesce(-beta, -alpha);
+		val = -SearchQuiesce(-beta, -alpha);
 		move_unmake(movelist[i]);
 
 		if (info.stop)
@@ -283,8 +283,6 @@ int SearchWiden(int depth, int val) {
 }
 
 int SearchRoot(U8 depth, int alpha, int beta) {
-
-	int flagInCheck;
 	s_Move movelist[256];
 	int val = 0;
 	int best = -MATE;
@@ -292,8 +290,8 @@ int SearchRoot(U8 depth, int alpha, int beta) {
 	U8 currmove_legal = 0;
 
 	/* Check  extension is done also at  the  root */
-	flagInCheck = isAttacked(board.stm ^ 1, board.king_loc[board.stm]);
-	if (flagInCheck) ++depth;
+	bool inCheck = isAttacked(board.stm ^ 1, board.king_loc[board.stm]);
+	if (inCheck) ++depth;
 
 	U8 mcount = movegen(movelist, bestmove);
 
@@ -354,7 +352,7 @@ int SearchRoot(U8 depth, int alpha, int beta) {
 	return alpha;
 }
 
-int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is_pv)
+int SearchAlpha(U8 depth, U8 ply, int alpha, int beta, int can_null, int is_pv)
 {
 	int  val = -MATE;
 	char bestmove;
@@ -396,17 +394,18 @@ int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is
 	**************************************************************************/
 	flagInCheck = (isAttacked(board.stm ^ 1, board.king_loc[board.stm]));
 	if (flagInCheck)
-		depthLimit += 1;
+		depth += 1;
 	/**************************************************************************
 	*  At leaf nodes we do quiescence search (captures only) to make sure     *
 	*  that only relatively quiet positions with no hanging pieces will be    *
 	*  evaluated.                                                             *
 	**************************************************************************/
-	if (depthLimit < 1)
-		return Quiesce(alpha, beta);
+	if (depth < 1)
+		return SearchQuiesce(alpha, beta);
 	if (CheckUp())
 		return 0;
-	if (isRepetition()) return Contempt();
+	if (isRepetition())
+		return Contempt();
 	/**************************************************************************
 	*  Read the transposition table. We may have already searched current     *
 	*  position. If depth was sufficient, then we might use the score         *
@@ -417,7 +416,7 @@ int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is
 	*  an index showing move's location on a move list. We should be able     *
 	*  to retrieve move without generating full move list instead.            *
 	**************************************************************************/
-	if ((val = tt_probe(depthLimit, alpha, beta, &tt_move_index)) != INF) {
+	if ((val = tt_probe(depth, alpha, beta, &tt_move_index)) != INF) {
 		// in pv nodes we return only in case of an exact hash hit
 		if (!is_pv || (val > alpha && val < beta)) {
 
@@ -441,14 +440,14 @@ int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is
 	/**************************************************************************
 	* EVAL PRUNING / STATIC NULL MOVE                                         *
 	**************************************************************************/
-	if (depthLimit < 3
+	if (depth < 3
 		&& !is_pv
 		&& !flagInCheck
 		&& abs(beta - 1) > -MATE + 100)
 	{
 		int static_eval = eval(alpha, beta, 1);
 
-		int eval_margin = 120 * depthLimit;
+		int eval_margin = 120 * depth;
 		if (static_eval - eval_margin >= beta)
 			return static_eval - eval_margin;
 	}
@@ -461,7 +460,7 @@ int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is
 	*  in  the endgame because of the risk of zugzwang.                       *
 	**************************************************************************/
 
-	if (depthLimit > 2
+	if (depth > 2
 		&& can_null
 		&& !is_pv
 		&& eval(alpha, beta, 1) > beta
@@ -477,9 +476,9 @@ int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is
 		**********************************************************************/
 
 		char R = 2;
-		if (depthLimit > 6) R = 3;
+		if (depth > 6) R = 3;
 
-		val = -SearchAlpha(depthLimit - R - 1, ply + 1, -beta, -beta + 1, NO_NULL, NO_PV);
+		val = -SearchAlpha(depth - R - 1, ply + 1, -beta, -beta + 1, NO_NULL, NO_PV);
 
 		move_unmakeNull(ep_old);
 
@@ -493,11 +492,11 @@ int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is
 	*  we drop directly to the quiescence search.                             *
 	**************************************************************************/
 
-	if (!is_pv && !flagInCheck && tt_move_index == -1 && can_null && depthLimit <= 3)
+	if (!is_pv && !flagInCheck && tt_move_index == -1 && can_null && depth <= 3)
 	{
-		int threshold = alpha - 300 - (depthLimit - 1) * 60;
+		int threshold = alpha - 300 - (depth - 1) * 60;
 		if (eval(alpha, beta, 1) < threshold) {
-			val = Quiesce(alpha, beta);
+			val = SearchQuiesce(alpha, beta);
 			if (val < threshold) return alpha;
 		}
 	} // end of razoring code
@@ -511,11 +510,11 @@ int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is
 
 	int fmargin[4] = { 0, 200, 300, 500 };
 
-	if (depthLimit <= 3
+	if (depth <= 3
 		&& !is_pv
 		&& !flagInCheck
 		&& abs(alpha) < 9000
-		&& eval(alpha, beta, 1) + fmargin[depthLimit] <= alpha)
+		&& eval(alpha, beta, 1) + fmargin[depth] <= alpha)
 		f_prune = 1;
 
 	/**************************************************************************
@@ -560,7 +559,7 @@ int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is
 		sd.cutoff[cl][move.from][move.to] -= 1;
 		moves_tried++;
 		reduction_depth = 0;       // this move has not been reduced yet
-		new_depth = depthLimit - 1;     // decrease depth by one ply
+		new_depth = depth - 1;     // decrease depth by one ply
 
 		/**********************************************************************
 		*  Late move reduction. Typically a cutoff occurs on trying one of    *
@@ -660,7 +659,7 @@ int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is
 				if (!move_iscapt(move)
 					&& !move_isprom(move)) {
 					setKillers(movelist[i], ply);
-					sd.history[board.stm][move.from][move.to] += depthLimit * depthLimit;
+					sd.history[board.stm][move.from][move.to] += depth * depth;
 
 					/**********************************************************
 					*  With super deep search history table would overflow    *
@@ -700,7 +699,7 @@ int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is
 			alpha = Contempt();
 	}
 	/* tt_save() does not save anything when the search is timed out */
-	tt_save(depthLimit, alpha, tt_flag, bestmove);
+	tt_save(depth, alpha, tt_flag, bestmove);
 	return alpha;
 }
 
@@ -802,7 +801,6 @@ void ageHistoryTable()
 *  side to move and to the  game  stage. This  way  we may make our program   *
 *  play for a  draw  or strive to avoid it.                                   *
 ******************************************************************************/
-
 int Contempt() {
 	int value = board.piece_material[sd.myside] < e.ENDGAME_MAT ? 0 : options.contempt;
 	if (board.stm == sd.myside)
@@ -855,10 +853,10 @@ void PrintBest() {
 	if (info.ponder || !info.post)
 		return;
 	char make[6]{};
-	algebraic_writemove(move_to_make, make);
+	MoveToStr(move_to_make, make);
 	if (options.ponder && (move_to_ponder.from != move_to_ponder.to)) {
 		char ponder[6]{};
-		algebraic_writemove(move_to_ponder, ponder);
+		MoveToStr(move_to_ponder, ponder);
 		printf("bestmove %s ponder %s\n", make, ponder);
 	}
 	else

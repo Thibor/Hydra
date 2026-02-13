@@ -229,9 +229,9 @@ U8 movegen_qs(s_Move* moves);
 void movegen_sort(U8 movecount, s_Move* m, U8 current);
 
 
-void convert_0x88_a(SQ sq, char* a);
-SQ convert_a_0x88(char* a);
-char* algebraic_writemove(s_Move m, char* a);
+void SquareToStr(SQ sq, char* a);
+SQ StrToSquare(char* a);
+char* MoveToStr(s_Move m, char* a);
 bool algebraic_moves(char* a);
 
 
@@ -249,7 +249,7 @@ int move_countLegal();
 bool move_isLegal(s_Move m);
 
 
-s_Move strToMove(char* a);
+s_Move StrToMove(char* a);
 
 
 void search_run(); // interface of the search functions
@@ -273,7 +273,7 @@ void printEval();
 void printEvalFactor(int wh, int bl);
 
 
-int Quiesce(int alpha, int beta);
+int SearchQuiesce(int alpha, int beta);
 bool badCapture(s_Move move);
 bool Blind(s_Move move);
 
@@ -324,8 +324,8 @@ void movegen_pawn_capt(SQ sq);
 void SearchIterate();
 int SearchWiden(int depthLimit, int val);
 void ResetInfo();
-int SearchRoot(U8 depthLimit, int alpha, int beta);
-int SearchAlpha(U8 depthLimit, U8 ply, int alpha, int beta, int can_null, int is_pv);
+int SearchRoot(U8 depth, int alpha, int beta);
+int SearchAlpha(U8 depth, U8 ply, int alpha, int beta, int can_null, int is_pv);
 void setKillers(s_Move m, U8 ply);
 void ReorderMoves(s_Move* m, U8 mcount, U8 ply);
 void PrintInfo(int depth,int val);
