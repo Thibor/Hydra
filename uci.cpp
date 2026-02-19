@@ -116,7 +116,7 @@ void UciCommand(char* command)
 {
 	if (!strcmp(command, "uci"))
 	{
-		printf("id name RapCpw\n");
+		printf("id name %s\n",NAME);
 		printf("option name hash type spin default 64 min 1 max 1024\n");
 		printf("option name aspiration type spin default 50 min 0 max 100\n");
 		printf("option name draw_opening type spin default -10 min -100 max 100\n");
