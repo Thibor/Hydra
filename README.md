@@ -14,10 +14,12 @@
     <img src="https://img.shields.io/github/last-commit/Thibor/Hydra?color=critical&style=for-the-badge">
 </div>
 
+FIDE-rules-compliant chess engine
+
 ## Features
 
-- [x] Alpha beta pruning<br>
-- [x] Quiescence search<br>
-- [x] trasposition table<br>
-- [x] Bitboard<br>
-- [x] Null move pruning<br> 
+- Board: 16x8
+- En passant
+- Underpromotions (knight, bishop, rook)
+- Threefold repetition
+- Stalemate and checkmate reported correctly to the GUI

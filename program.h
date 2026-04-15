@@ -214,7 +214,6 @@ extern char vector[5][8];
 extern bool slide[5];
 extern char vectors[5];
 
-//void board_display();
 void clearBoard();
 void FillSq(U8 color, U8 piece, S8 sq);
 void ClearSq(SQ sq);
@@ -251,87 +250,6 @@ bool move_isLegal(s_Move m);
 
 s_Move StrToMove(char* a);
 
-
-void search_run(); // interface of the search functions
-void clearHistoryTable();
-
-
-void setDefaultEval();
-void setBasicValues();
-void setSquaresNearKing();
-void setPcsq();
-void correctValues();
-void readIniFile();
-void processIniString(char line[250]);
-
-
-int eval(int alpha, int beta, int use_hash);
-int isPiece(U8 color, U8 piece, SQ sq);
-int getTropism(int sq1, int sq2);
-void PrintBoard();
-void printEval();
-void printEvalFactor(int wh, int bl);
-
-
-int SearchQuiesce(int alpha, int beta);
-bool badCapture(s_Move move);
-bool Blind(s_Move move);
-
-bool isAttacked(char byColor, SQ sq);
-bool leaperAttack(char byColor, SQ sq, char byPiece);
-bool straightAttack(char byColor, SQ sq, int vect);
-bool diagAttack(int byColor, SQ sq, int vect);
-bool bishAttack(int byColor, SQ sq, int vect);
-
-void UciBench();
-void UciPerformance();
-void PerftDriver(U8 depthLimit);
-
-void UciBench(char* command);
-void GetPv(char* pv);
-
-unsigned int GetTimeMs();
-bool isRepetition();
-void PrintBenchHeader();
-void PrintPerformanceHeader();
-void PrintSummary(unsigned int time,unsigned long long nodes);
-
-/* king safety*/
-int wKingShield();
-int bKingShield();
-
-/* pawn structure */
-int getPawnScore();
-int evalPawnStructure();
-int EvalPawn(SQ sq, S8 side);
-void EvalKnight(SQ sq, S8 side);
-void EvalBishop(SQ sq, S8 side);
-void EvalRook(SQ sq, S8 side);
-void EvalQueen(SQ sq, S8 side);
-bool isPawnSupported(SQ sq, S8 side);
-
-/* pattern detection */
-void blockedPieces(int side);
-
-//uci
-void UciLoop();
-//movegen
-void movegen_push(char from, char to, U8 piece_from, U8 piece_cap, char flags);
-//void movegen_push_qs(char from, char to, U8 piece_from, U8 piece_cap, char flags);
-void movegen_pawn_move(SQ sq, bool promotion_only);
-void movegen_pawn_capt(SQ sq);
-//search
-void SearchIterate();
-int SearchWiden(int depthLimit, int val);
-void ResetInfo();
-int SearchRoot(U8 depth, int alpha, int beta);
-int SearchAlpha(U8 depth, U8 ply, int alpha, int beta, int can_null, int is_pv);
-void setKillers(s_Move m, U8 ply);
-void ReorderMoves(s_Move* m, U8 mcount, U8 ply);
-void PrintInfo(int depth,int val);
-void ageHistoryTable();
-int Contempt();
-
 //transposition
 struct szobrist {
 	U64 piecesquare[6][2][128];
@@ -360,32 +278,18 @@ struct spawntt_entry {
 	U64  hash;
 	int  val;
 };
-extern class spawntt_entry* ptt;
+//extern class spawntt_entry* ptt;
 
 struct sevaltt_entry {
 	U64 hash;
 	int val;
 };
-extern sevaltt_entry* ett;
+//extern sevaltt_entry* ett;
 
 extern U64 tt_size;
 extern int ptt_size;
 extern int ett_size;
 
-U64 rand64();
-int tt_init();
-int tt_setsize(int size);
-int tt_probe(U8 depthLimit, int alpha, int beta, char* best);
-void tt_save(U8 depthLimit, int val, char flags, char best);
-int ttpawn_setsize(int size);
-int ttpawn_probe();
-void ttpawn_save(int val);
-int tteval_setsize(int size);
-int tteval_probe();
-void tteval_save(int val);
-U64 ttPermill();
-//board
-/* row identifiers */
 #define ROW_1   ( A1 >> 4 )
 #define ROW_2   ( A2 >> 4 )
 #define ROW_3   ( A3 >> 4 )
@@ -434,3 +338,70 @@ U64 ttPermill();
 
 /* determine if two squares lie in the same row */
 #define SAME_ROW(sq1,sq2) ( ( ROW(sq1) == ROW(sq2) ) ? (1) : (0) )
+
+U64 rand64();
+int tt_init();
+int tt_setsize(int size);
+int tt_probe(U8 depthLimit, int alpha, int beta, char* best);
+void tt_save(U8 depthLimit, int val, char flags, char best);
+int ttpawn_setsize(int size);
+int ttpawn_probe();
+void ttpawn_save(int val);
+int tteval_setsize(int size);
+int tteval_probe();
+void tteval_save(int val);
+U64 ttPermill();
+void search_run();
+void clearHistoryTable();
+void setDefaultEval();
+void setBasicValues();
+void setSquaresNearKing();
+void setPcsq();
+int eval(int alpha, int beta, int use_hash);
+int isPiece(U8 color, U8 piece, SQ sq);
+int getTropism(int sq1, int sq2);
+void PrintBoard();
+void printEval();
+void printEvalFactor(int wh, int bl);
+int SearchQuiesce(int alpha, int beta);
+bool badCapture(s_Move move);
+bool Blind(s_Move move);
+bool isAttacked(char byColor, SQ sq);
+bool leaperAttack(char byColor, SQ sq, char byPiece);
+bool straightAttack(char byColor, SQ sq, int vect);
+bool diagAttack(int byColor, SQ sq, int vect);
+bool bishAttack(int byColor, SQ sq, int vect);
+void UciBench();
+void UciPerformance();
+void PerftDriver(U8 depthLimit);
+void GetPv(char* pv);
+unsigned int GetTimeMs();
+bool isRepetition();
+void PrintBenchHeader();
+void PrintPerformanceHeader();
+void PrintSummary(unsigned int time, unsigned long long nodes);
+int wKingShield();
+int bKingShield();
+int getPawnScore();
+int evalPawnStructure();
+int EvalPawn(SQ sq, S8 side);
+void EvalKnight(SQ sq, S8 side);
+void EvalBishop(SQ sq, S8 side);
+void EvalRook(SQ sq, S8 side);
+void EvalQueen(SQ sq, S8 side);
+bool isPawnSupported(SQ sq, S8 side);
+void blockedPieces(int side);
+void UciLoop();
+void movegen_push(char from, char to, U8 piece_from, U8 piece_cap, char flags);
+void movegen_pawn_move(SQ sq, bool promotion_only);
+void movegen_pawn_capt(SQ sq);
+void SearchIterate();
+int SearchWiden(int depthLimit, int val);
+void ResetInfo();
+int SearchRoot(U8 depth, int alpha, int beta);
+int SearchAlpha(U8 depth, U8 ply, int alpha, int beta, int can_null, int is_pv);
+void setKillers(s_Move m, U8 ply);
+void ReorderMoves(s_Move* m, U8 mcount, U8 ply);
+void PrintInfo(int depth, int val);
+void ageHistoryTable();
+int Contempt();

@@ -308,7 +308,6 @@ int EloRnd(int range) {
 }
 
 static void SetElo() {
-	srand(time(NULL));
 	int elo = options.elo;
 	if (elo < options.eloMin)
 		elo = options.eloMin;
@@ -326,31 +325,16 @@ static void SetElo() {
 	}
 }
 
-void setDefaultEval()
-{
+void setDefaultEval(){
 	SetElo();
 	setBasicValues();
 	setSquaresNearKing();
 	setPcsq();
-	readIniFile();
-	correctValues();
 }
 
 void setBasicValues() {
-
-	/********************************************************************************
-	*  We use material values by IM Larry Kaufman with additional + 10 for a Bishop *
-	*  and only +30 for a Bishop pair 	                                            *
-	********************************************************************************/
 	for (int n = 0; n < 6; n++)
 		e.PIECE_VALUE[n] = material[n];
-	/*e.PIECE_VALUE[KING] = 0;
-	e.PIECE_VALUE[QUEEN] = 975;
-	e.PIECE_VALUE[ROOK] = 500;
-	e.PIECE_VALUE[BISHOP] = 335;
-	e.PIECE_VALUE[KNIGHT] = 325;
-	e.PIECE_VALUE[PAWN] = 100;*/
-
 	e.BISHOP_PAIR = 30;
 	e.P_KNIGHT_PAIR = 8;
 	e.P_ROOK_PAIR = 16;
@@ -470,95 +454,6 @@ void setPcsq() {
 		e.egPst[KING][WHITE][index_white[i]] = king_pcsq_eg[i];
 		e.egPst[KING][BLACK][index_black[i]] = king_pcsq_eg[i];
 	}
-}
-
-/* This function is meant to be used in conjunction with the *.ini file.
-Its aim is to make sure that all the assumptions made within the program
-are met.  */
-
-void correctValues() {
-	if (e.PIECE_VALUE[BISHOP] == e.PIECE_VALUE[KNIGHT])
-		++e.PIECE_VALUE[BISHOP];
-}
-
-void readIniFile()
-{
-	char line[256];
-	FILE* cpw_init = fopen("cpw.ini", "r");
-	if (!cpw_init)
-		return;
-	while (fgets(line, 250, cpw_init))
-	{
-		if (line[0] == ';') continue; // don't process comment lines
-		processIniString(line);
-	}
-}
-
-void processIniString(char line[250]) {
-	int converted;
-	/* piece values */
-	if (!strncmp(line, "PAWN_VALUE", 10))
-		converted = sscanf(line, "PAWN_VALUE %d", &e.PIECE_VALUE[PAWN]);
-	else if (!strncmp(line, "KNIGHT_VALUE", 12))
-		converted = sscanf(line, "KNIGHT_VALUE %d", &e.PIECE_VALUE[KNIGHT]);
-	else if (!strncmp(line, "BISHOP_VALUE", 12))
-		converted = sscanf(line, "BISHOP_VALUE %d", &e.PIECE_VALUE[BISHOP]);
-	else if (!strncmp(line, "ROOK_VALUE", 10))
-		converted = sscanf(line, "ROOK_VALUE %d", &e.PIECE_VALUE[ROOK]);
-	else if (!strncmp(line, "QUEEN_VALUE", 11))
-		converted = sscanf(line, "QUEEN_VALUE %d", &e.PIECE_VALUE[QUEEN]);
-
-	/* piece pairs */
-	else if (!strncmp(line, "BISHOP_PAIR", 11))
-		converted = sscanf(line, "BISHOP_PAIR %d", &e.BISHOP_PAIR);
-	else if (!strncmp(line, "PENALTY_KNIGHT_PAIR", 19))
-		converted = sscanf(line, "PENALTY_KNIGHT_PAIR %d", &e.P_KNIGHT_PAIR);
-	else if (!strncmp(line, "PENALTY_ROOK_PAIR", 17))
-		converted = sscanf(line, "PENALTY_ROOK_PAIR %d", &e.P_KNIGHT_PAIR);
-
-	/* pawn shield */
-	else if (!strncmp(line, "SHIELD_2", 8))
-		converted = sscanf(line, "SHIELD_2 %d", &e.SHIELD_2);
-	else if (!strncmp(line, "SHIELD_3", 8))
-		converted = sscanf(line, "SHIELD_3 %d", &e.SHIELD_3);
-	else if (!strncmp(line, "PENALTY_NO_SHIELD", 17))
-		converted = sscanf(line, "PENALTY_NO_SHIELD %d", &e.P_NO_SHIELD);
-
-	/* major penalties */
-	else if (!strncmp(line, "PENALTY_BISHOP_TRAPPED_A7", 25))
-		converted = sscanf(line, "PENALTY_BISHOP_TRAPPED_A7 %d", &e.P_BISHOP_TRAPPED_A7);
-	else if (!strncmp(line, "PENALTY_BISHOP_TRAPPED_A6", 25))
-		converted = sscanf(line, "PENALTY_BISHOP_TRAPPED_A6 %d", &e.P_BISHOP_TRAPPED_A6);
-	else if (!strncmp(line, "PENALTY_KNIGHT_TRAPPED_A8", 25))
-		converted = sscanf(line, "PENALTY_KNIGHT_TRAPPED_A8 %d", &e.P_KNIGHT_TRAPPED_A8);
-	else if (!strncmp(line, "PENALTY_KNIGHT_TRAPPED_A7", 25))
-		converted = sscanf(line, "PENALTY_KNIGHT_TRAPPED_A7 %d", &e.P_KNIGHT_TRAPPED_A7);
-	else if (!strncmp(line, "PENALTY_KING_BLOCKS_ROOK", 24))
-		converted = sscanf(line, "PENALTY_KNIGHT_TRAPPED_A7 %d", &e.P_KING_BLOCKS_ROOK);
-	else if (!strncmp(line, "PENALTY_BLOCKED_CENTRAL_PAWN", 28))
-		converted = sscanf(line, "PENALTY_BLOCKED_CENTRAL_PAWN %d", &e.P_BLOCK_CENTRAL_PAWN);
-
-	/* minor penalties */
-	else if (!strncmp(line, "PENALTY_KNIGHT_BLOCKS_C", 23))
-		converted = sscanf(line, "PENALTY_KNIGHT_BLOCKS_C %d", &e.P_C3_KNIGHT);
-	else if (!strncmp(line, "PENALTY_NO_FIANCHETTO", 21))
-		converted = sscanf(line, "PENALTY_NO_FIANCHETTO %d", &e.P_NO_FIANCHETTO);
-
-	/* minor positional bonuses */
-	else if (!strncmp(line, "ROOK_OPEN", 9))
-		converted = sscanf(line, "ROOK_OPEN %d", &e.ROOK_OPEN);
-	else if (!strncmp(line, "ROOK_HALF_OPEN", 14))
-		converted = sscanf(line, "ROOK_HALF_OPEN %d", &e.ROOK_HALF);
-	else if (!strncmp(line, "FIANCHETTO", 10))
-		converted = sscanf(line, "FIANCHETTO %d", &e.FIANCHETTO);
-	else if (!strncmp(line, "RETURNING_BISHOP", 16))
-		converted = sscanf(line, "RETURNING_BISHOP %d", &e.RETURNING_BISHOP);
-	else if (!strncmp(line, "TEMPO", 5))
-		converted = sscanf(line, "TEMPO %d", &e.TEMPO);
-
-	/* variables deciding about inner workings of evaluation function */
-	else if (!strncmp(line, "ENDGAME_MATERIAL", 16))
-		converted = sscanf(line, "ENDGAME_MATERIAL %d", &e.ENDGAME_MAT);
 }
 
 int eval(int alpha, int beta, int use_hash) {
