@@ -18,6 +18,7 @@ FIDE-rules-compliant chess engine
 
 ## Features
 
+- Single file
 - Board: 16x8
 - En passant
 - Underpromotions (knight, bishop, rook)

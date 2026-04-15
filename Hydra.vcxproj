@@ -119,14 +119,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="eval.cpp" />
-    <ClCompile Include="movegen.cpp" />
-    <ClCompile Include="program.cpp" />
-    <ClCompile Include="search.cpp" />
-    <ClCompile Include="transposition.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="program.h" />
+    <ClCompile Include="hydra.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
