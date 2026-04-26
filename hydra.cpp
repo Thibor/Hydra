@@ -32,6 +32,39 @@ using namespace std;
 #define SORT_CAPT 100000000
 #define SORT_PROM  90000000
 #define SORT_KILL  80000000
+#define ROW_1   ( A1 >> 4 )
+#define ROW_2   ( A2 >> 4 )
+#define ROW_3   ( A3 >> 4 )
+#define ROW_4   ( A4 >> 4 )
+#define ROW_5   ( A5 >> 4 )
+#define ROW_6   ( A6 >> 4 )
+#define ROW_7   ( A7 >> 4 )
+#define ROW_8   ( A8 >> 4 )
+#define COL_A  ( A1 & 7 )
+#define COL_B  ( B1 & 7 )
+#define COL_C  ( C1 & 7 )
+#define COL_D  ( D1 & 7 )
+#define COL_E  ( E1 & 7 )
+#define COL_F  ( F1 & 7 )
+#define COL_G  ( G1 & 7 )
+#define COL_H  ( H1 & 7 )
+#define NORTH  16
+#define NN    ( NORTH + NORTH )
+#define SOUTH  -16
+#define SS    ( SOUTH + SOUTH )
+#define EAST  1
+#define WEST  -1
+#define NE    17
+#define SW    -17
+#define NW    15
+#define SE    -15
+#define SET_SQ(row,col) (row * 16 + col)
+#define IS_SQ(x)  ( (x) & 0x88 ) ? (0) : (1)
+#define COL(sq)  ( (sq) & 7 )
+#define ROW(sq)  ( (sq) >> 4 )
+#define SAME_COL(sq1,sq2) ( ( COL(sq1) == COL(sq2) ) ? (1) : (0) )
+#define SAME_ROW(sq1,sq2) ( ( ROW(sq1) == ROW(sq2) ) ? (1) : (0) )
+#define REL_SQ(cl, sq)       ((cl) == (WHITE) ? (sq) : (inv_sq[sq]))
 #define STARTFEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 #define NAME "Hydra"
 #define VERSION "2026-02-03"
@@ -80,6 +113,23 @@ enum emflag {
 	MFLAG_NULLMOVE = 32
 };
 
+enum etimef {
+	FTIME = 0x1,
+	FINC = 0x2,
+	FMOVESTOGO = 0x4,
+	FDEPTH = 0x8,
+	FNODES = 0x10,
+	FMATE = 0x20,
+	FMOVETIME = 0x40,
+	FINFINITE = 0x80
+};
+
+enum ettflag {
+	TT_EXACT,
+	TT_ALPHA,
+	TT_BETA
+};
+
 struct s_Board {
 	U8	 pieces[128];
 	U8	 color[128];
@@ -101,8 +151,6 @@ struct s_Board {
 	U8 pawns_on_rank[2][8];
 	U8 pawn_ctrl[2][128];
 };
-extern s_Board board;
-
 
 struct s_Move {
 	char id;
@@ -118,7 +166,6 @@ struct s_Move {
 	int score;
 };
 
-
 struct s_SearchDriver {
 	int myside;
 	int history[2][128][128];
@@ -126,18 +173,6 @@ struct s_SearchDriver {
 	s_Move killers[1024][2];
 	char pv[2048];
 	S16 score;
-};
-extern s_SearchDriver sd;
-
-enum etimef {
-	FTIME = 0x1,
-	FINC = 0x2,
-	FMOVESTOGO = 0x4,
-	FDEPTH = 0x8,
-	FNODES = 0x10,
-	FMATE = 0x20,
-	FMOVETIME = 0x40,
-	FINFINITE = 0x80
 };
 
 struct s_SearchInfo {
@@ -153,10 +188,8 @@ struct s_SearchInfo {
 	U8 flags;
 	U32 timeStart;
 };
-extern s_SearchInfo info;
 
-struct s_Options
-{
+struct s_Options{
 	bool ponder = true;
 	int contempt = 10;
 	int aspiration = 50;  // size of the aspiration window ( val-ASPITATION, val+ASPIRATION )
@@ -164,29 +197,42 @@ struct s_Options
 	int eloMin = 1000;
 	int eloMax = 2500;
 };
-extern s_Options options;
 
-struct s_eval_data
-{
+//transposition
+struct s_Zobrist {
+	U64 piecesquare[6][2][128];
+	U64 color;
+	U64 castling[16];
+	U64 ep[128];
+};
+
+struct s_TTEntry {
+	U64  hash;
+	int  val;
+	U8	 depthLimit;
+	U8   flags;
+	U8   bestmove;
+};
+
+struct s_TTPawnEntry {
+	U64  hash;
+	int  val;
+};
+
+struct s_TTEvalEntry {
+	U64 hash;
+	int val;
+};
+
+struct s_EvalData{
 	int PIECE_VALUE[6];
 	int SORT_VALUE[6];
-
-	/* Piece-square tables - we use size of the board representation,
-	not 0..63, to avoid re-indexing. Initialization routine, however,
-	uses 0..63 format for clarity */
 	int mgPst[6][2][128];
 	int egPst[6][2][128];
-
-	/* piece-square tables for pawn structure */
-
-	int weak_pawn[2][128]; // isolated and backward pawns are scored in the same way
+	int weak_pawn[2][128];
 	int passed_pawn[2][128];
 	int protected_passer[2][128];
-
 	int sqNearK[2][128][128];
-
-	/* single values - letter p before a name signifies a penalty */
-
 	int BISHOP_PAIR;
 	int P_KNIGHT_PAIR;
 	int P_ROOK_PAIR;
@@ -198,11 +244,9 @@ struct s_eval_data
 	int P_KNIGHT_TRAPPED_A7;
 	int P_BLOCK_CENTRAL_PAWN;
 	int P_KING_BLOCKS_ROOK;
-
 	int SHIELD_2;
 	int SHIELD_3;
 	int P_NO_SHIELD;
-
 	int RETURNING_BISHOP;
 	int P_C3_KNIGHT;
 	int P_NO_FIANCHETTO;
@@ -210,137 +254,72 @@ struct s_eval_data
 	int TEMPO;
 	int ENDGAME_MAT;
 };
-extern s_eval_data e;
 
-extern char vector[5][8];
-extern bool slide[5];
-extern char vectors[5];
+struct s_EvalVector {
+	int gamePhase;   // function of piece material: 24 in opening, 0 in endgame
+	int mgMob[2];     // midgame mobility
+	int egMob[2];     // endgame mobility
+	int attCnt[2];    // no. of pieces attacking zone around enemy king
+	int attWeight[2]; // weight of attacking pieces - index to SafetyTable
+	int mgTropism[2]; // midgame king tropism score
+	int egTropism[2]; // endgame king tropism score
+	int kingShield[2];
+	int adjustMaterial[2];
+	int blockages[2];
+	int positionalThemes[2];
+};
+
+s_SearchInfo info;
+s_Move* m;
+s_SearchDriver sd;
+s_Options options;
+s_Board board;
+s_Zobrist zobrist;
+s_EvalData e;
+s_EvalVector v;
+s_TTEntry* tt;
+s_TTPawnEntry* ptt;
+s_TTEvalEntry* ett;
+
+U64 tt_size = 0;
+int ptt_size = 0;
+int ett_size = 0;
+U64 tt_used = 0;
+U8 movecount;
+
+bool slide[5] = { 0, 1, 1, 1, 0 };
+char vectors[5] = { 8, 8, 4, 4, 8 };
+char vector[5][8] = {
+	{ SW, SOUTH, SE, WEST, EAST, NW, NORTH, NE },
+	{ SW, SOUTH, SE, WEST, EAST, NW, NORTH, NE },
+	{ SOUTH, WEST, EAST, NORTH                 },
+	{ SW, SE, NW, NE                           },
+	{ -33, -31, -18, -14, 14, 18, 31, 33       }
+};
 
 void clearBoard();
 void FillSq(U8 color, U8 piece, S8 sq);
 void ClearSq(SQ sq);
-int board_loadFromFen(char* fen);
-
+int SetFen(char* fen);
 void PrintBest();
 void UciCommand(char* command);
 bool CheckUp();
-
 U8 movegen(s_Move* moves, U8 tt_move);
 U8 movegen_qs(s_Move* moves);
 void movegen_sort(U8 movecount, s_Move* m, U8 current);
-
-
 void SquareToStr(SQ sq, char* a);
 SQ StrToSquare(char* a);
 char* MoveToStr(s_Move m, char* a);
 bool algebraic_moves(char* a);
-
-
 int move_make(s_Move move);
 int move_unmake(s_Move move);
 int move_makeNull();
 int move_unmakeNull(char ep);
-
-// the next couple of functions respond to questions about moves or move lists
-
 int move_iscapt(s_Move m);
 int move_isprom(s_Move m);
 int move_canSimplify(s_Move m);
 int move_countLegal();
 bool move_isLegal(s_Move m);
-
-
-s_Move StrToMove(char* a);
-
-//transposition
-struct szobrist {
-	U64 piecesquare[6][2][128];
-	U64 color;
-	U64 castling[16];
-	U64 ep[128];
-};
-extern szobrist zobrist;
-
-enum ettflag {
-	TT_EXACT,
-	TT_ALPHA,
-	TT_BETA
-};
-
-struct stt_entry {
-	U64  hash;
-	int  val;
-	U8	 depthLimit;
-	U8   flags;
-	U8   bestmove;
-};
-extern stt_entry* tt;
-
-struct spawntt_entry {
-	U64  hash;
-	int  val;
-};
-//extern class spawntt_entry* ptt;
-
-struct sevaltt_entry {
-	U64 hash;
-	int val;
-};
-//extern sevaltt_entry* ett;
-
-extern U64 tt_size;
-extern int ptt_size;
-extern int ett_size;
-
-#define ROW_1   ( A1 >> 4 )
-#define ROW_2   ( A2 >> 4 )
-#define ROW_3   ( A3 >> 4 )
-#define ROW_4   ( A4 >> 4 )
-#define ROW_5   ( A5 >> 4 )
-#define ROW_6   ( A6 >> 4 )
-#define ROW_7   ( A7 >> 4 )
-#define ROW_8   ( A8 >> 4 )
-
-/* column identifiers */
-#define COL_A  ( A1 & 7 )
-#define COL_B  ( B1 & 7 )
-#define COL_C  ( C1 & 7 )
-#define COL_D  ( D1 & 7 )
-#define COL_E  ( E1 & 7 )
-#define COL_F  ( F1 & 7 )
-#define COL_G  ( G1 & 7 )
-#define COL_H  ( H1 & 7 )
-
-/* vectors */
-#define NORTH  16
-#define NN    ( NORTH + NORTH )
-#define SOUTH  -16
-#define SS    ( SOUTH + SOUTH )
-#define EAST  1
-#define WEST  -1
-#define NE    17
-#define SW    -17
-#define NW    15
-#define SE    -15
-
-/* generate square number from row and column */
-#define SET_SQ(row,col) (row * 16 + col)
-
-/* does a given number represent a square on the board? */
-#define IS_SQ(x)  ( (x) & 0x88 ) ? (0) : (1)
-
-/* get board column that a square is part of */
-#define COL(sq)  ( (sq) & 7 )
-
-/* get board row that a square is part of */
-#define ROW(sq)  ( (sq) >> 4 )
-
-/* determine if two squares lie on the same column */
-#define SAME_COL(sq1,sq2) ( ( COL(sq1) == COL(sq2) ) ? (1) : (0) )
-
-/* determine if two squares lie in the same row */
-#define SAME_ROW(sq1,sq2) ( ( ROW(sq1) == ROW(sq2) ) ? (1) : (0) )
-
 U64 rand64();
 int tt_init();
 int tt_setsize(int size);
@@ -430,8 +409,6 @@ static const int inv_sq[128] = {
 		A1, B1, C1, D1, E1, F1, G1, H1, -1, -1, -1, -1, -1, -1, -1, -1
 };
 
-#define REL_SQ(cl, sq)       ((cl) == (WHITE) ? (sq) : (inv_sq[sq]))
-
 /* adjustements of piece value based on the number of own pawns */
 int n_adj[9] = { -20, -16, -12, -8, -4,  0,  4,  8, 12 };
 int r_adj[9] = { 15,  12,   9,  6,  3,  0, -3, -6, -9 };
@@ -448,27 +425,6 @@ static const int SafetyTable[100] = {
 	500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
 	500, 500, 500, 500, 500, 500, 500, 500, 500, 500
 };
-
-/******************************************************************************
-*  This struct holds data about certain aspects of evaluation, which allows   *
-*  our program to print them if desired.                                      *
-******************************************************************************/
-
-struct eval_vector {
-	int gamePhase;   // function of piece material: 24 in opening, 0 in endgame
-	int mgMob[2];     // midgame mobility
-	int egMob[2];     // endgame mobility
-	int attCnt[2];    // no. of pieces attacking zone around enemy king
-	int attWeight[2]; // weight of attacking pieces - index to SafetyTable
-	int mgTropism[2]; // midgame king tropism score
-	int egTropism[2]; // endgame king tropism score
-	int kingShield[2];
-	int adjustMaterial[2];
-	int blockages[2];
-	int positionalThemes[2];
-} v;
-
-s_eval_data e;
 
 // tables used for translating piece/square tables to internal 0x88 representation
 
@@ -2460,37 +2416,6 @@ void PrintBest() {
 		printf("bestmove %s\n", make);
 }
 
-s_SearchDriver sd = {};
-s_Options options = {};
-s_SearchInfo info = {};
-s_Board board = {};
-
-szobrist zobrist;
-
-stt_entry* tt;
-spawntt_entry* ptt;
-sevaltt_entry* ett;
-
-U64 tt_size = 0;
-int ptt_size = 0;
-int ett_size = 0;
-U64 tt_used = 0;
-
-
-U8 movecount;
-
-s_Move* m;
-
-bool slide[5] = { 0, 1, 1, 1, 0 };
-char vectors[5] = { 8, 8, 4, 4, 8 };
-char vector[5][8] = {
-	{ SW, SOUTH, SE, WEST, EAST, NW, NORTH, NE },
-	{ SW, SOUTH, SE, WEST, EAST, NW, NORTH, NE },
-	{ SOUTH, WEST, EAST, NORTH                 },
-	{ SW, SE, NW, NE                           },
-	{ -33, -31, -18, -14, 14, 18, 31, 33       }
-};
-
 int move_makeNull() {
 	board.stm ^= 1;
 	board.hash ^= zobrist.color;
@@ -3091,8 +3016,8 @@ int tt_setsize(int size) {
 		return 0;
 	}
 
-	tt_size = (size / sizeof(stt_entry)) - 1;
-	tt = (stt_entry*)calloc(tt_size + 1, sizeof(stt_entry));
+	tt_size = (size / sizeof(s_TTEntry)) - 1;
+	tt = (s_TTEntry*)calloc(tt_size + 1, sizeof(s_TTEntry));
 	return 0;
 }
 
@@ -3113,7 +3038,7 @@ int tt_probe(U8 depthLimit, int alpha, int beta, char* best) {
 	*   you have to be extra careful to avoid search instability.             *
 	**************************************************************************/
 
-	stt_entry* phashe = &tt[board.hash & tt_size];
+	s_TTEntry* phashe = &tt[board.hash & tt_size];
 
 	if (phashe->hash == board.hash) {
 
@@ -3155,7 +3080,7 @@ void tt_save(U8 depthLimit, int val, char flags, char best) {
 	if (info.stop)
 		return;
 
-	stt_entry* phashe = &tt[board.hash & tt_size];
+	s_TTEntry* phashe = &tt[board.hash & tt_size];
 
 	if ((phashe->hash == board.hash) && (phashe->depthLimit > depthLimit)) return;
 	if (!phashe->hash)
@@ -3188,8 +3113,8 @@ int ttpawn_setsize(int size) {
 		return 0;
 	}
 
-	ptt_size = (size / sizeof(spawntt_entry)) - 1;
-	ptt = (spawntt_entry*)malloc(size);
+	ptt_size = (size / sizeof(s_TTPawnEntry)) - 1;
+	ptt = (s_TTPawnEntry*)malloc(size);
 
 	return 0;
 }
@@ -3198,7 +3123,7 @@ int ttpawn_probe() {
 
 	if (!ptt_size) return INF;
 
-	spawntt_entry* phashe = &ptt[board.phash & ptt_size];
+	s_TTPawnEntry* phashe = &ptt[board.phash & ptt_size];
 
 	if (phashe->hash == board.phash) return phashe->val;
 
@@ -3210,7 +3135,7 @@ void ttpawn_save(int val) {
 
 	if (!ptt_size) return;
 
-	spawntt_entry* phashe = &ptt[board.phash & ptt_size];
+	s_TTPawnEntry* phashe = &ptt[board.phash & ptt_size];
 
 	phashe->hash = board.phash;
 	phashe->val = val;
@@ -3233,15 +3158,15 @@ int tteval_setsize(int size)
 		ett_size = 0;
 		return 0;
 	}
-	ett_size = (size / sizeof(sevaltt_entry)) - 1;
-	ett = (sevaltt_entry*)malloc(size);
+	ett_size = (size / sizeof(s_TTEvalEntry)) - 1;
+	ett = (s_TTEvalEntry*)malloc(size);
 	return 0;
 }
 
 int tteval_probe() {
 	if (!ett_size)
 		return INF;
-	sevaltt_entry* phashe = &ett[board.hash & ett_size];
+	s_TTEvalEntry* phashe = &ett[board.hash & ett_size];
 	if (phashe->hash == board.hash)
 		return phashe->val;
 	return INF;
@@ -3252,7 +3177,7 @@ void tteval_save(int val) {
 
 	if (!ett_size) return;
 
-	sevaltt_entry* phashe = &ett[board.hash & ett_size];
+	s_TTEvalEntry* phashe = &ett[board.hash & ett_size];
 
 	phashe->hash = board.hash;
 	phashe->val = val;
@@ -3406,8 +3331,7 @@ void ClearSq(SQ sq) {
 }
 
 
-int board_loadFromFen(char* fen) {
-
+int SetFen(char* fen) {
 	clearBoard();
 	clearHistoryTable();
 
@@ -3929,9 +3853,9 @@ void UciCommand(char* command)
 	if (!strncmp(command, "position", 8))
 	{
 		if (!strncmp(command, "position fen", 12))
-			board_loadFromFen(command + 13);
+			SetFen(command + 13);
 		else
-			board_loadFromFen(STARTFEN);
+			SetFen(STARTFEN);
 		char* moves = strstr(command, "moves");
 		if (moves)
 			if (!algebraic_moves(moves + 6))
@@ -3963,14 +3887,13 @@ void UciLoop() {
 	}
 }
 
-int main()
-{
+int main(){
 	PrintWelcome();
 	setDefaultEval();
 	tt_init();
 	tt_setsize(0x4000000);     //64m
 	ttpawn_setsize(0x1000000); //16m
 	tteval_setsize(0x2000000); //32m
-	board_loadFromFen(STARTFEN);
+	SetFen(STARTFEN);
 	UciLoop();
 }
