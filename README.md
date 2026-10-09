@@ -4,7 +4,7 @@
 <img src="/Resources/Hydra.jpg" />
     <br>
     <br>
-    <b><i>Small uci chess engine 2500 elo.</i></b>
+    <b><i>Small uci chess engine 2450 elo.</i></b>
     <br>
     <br>
     <img src="https://img.shields.io/github/downloads/Thibor/Hydra/total?color=critical&style=for-the-badge">
@@ -19,7 +19,8 @@ FIDE-rules-compliant chess engine
 ## Features
 
 - Single file
-- Board: 16x8
+- Board: 12 static bitboards
+- Move generator: bmi2
 - En passant
 - Underpromotions (knight, bishop, rook)
 - Threefold repetition
