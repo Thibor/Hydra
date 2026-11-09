@@ -19,7 +19,7 @@ FIDE-rules-compliant chess engine
 ## Features
 
 - Single file
-- Board: 12 static bitboards
+- Board 12 static bitboards
 - Move generator: bmi2
 - En passant
 - Underpromotions (knight, bishop, rook)
